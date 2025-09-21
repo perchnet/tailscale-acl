@@ -69,6 +69,13 @@
 		},
 	],
 
+	"tagOwners": {
+		"tag:web-ingress": [],
+		"tag:web-backend": [],
+		"tag:tsidp":       [],
+		"tag:authentik":   [],
+	},
+
 	// Test access rules every time they're saved.
 	// "tests": [
 	//   {
