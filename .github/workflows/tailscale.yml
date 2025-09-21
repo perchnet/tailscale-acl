@@ -1,0 +1,50 @@
+name: Sync Tailscale ACLs
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "**.hujson"
+  pull_request:
+  merge_group:
+
+jobs:
+  acls:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        if: github.event_name != 'pull_request'
+      - name: Checkout (pull request)
+        uses: actions/checkout@v4
+        if: github.event_name == 'pull_request'
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+      - name: Format files
+        run: ./reformat.sh
+      - uses: EndBug/add-and-commit@v9 # You can change this to use a specific version.
+        with:
+          message: 'chore: automatic reformat'
+          default_author: 'github_actions'
+
+      - name: Deploy ACL
+        if: (github.event_name == 'push' || github.event_name == 'merge_group')
+        id: deploy-acl
+        uses: tailscale/gitops-acl-action@v1
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tailnet: ${{ secrets.TS_TAILNET }}
+          action: apply
+
+      - name: Test ACL
+        if: github.event_name == 'pull_request'
+        id: test-acl
+        uses: tailscale/gitops-acl-action@v1
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tailnet: ${{ secrets.TS_TAILNET }}
+          action: test
