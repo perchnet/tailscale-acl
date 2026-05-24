@@ -69,7 +69,7 @@
 		},
 	],
 
-	"tagOwners": {// can use exit nodes
+	"tagOwners": { // can use exit nodes
 		"tag:can-exit": [],
 
 		// can funnel (serve to the public internet)
