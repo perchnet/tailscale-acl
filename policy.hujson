@@ -69,11 +69,54 @@
 		},
 	],
 
-	"tagOwners": {
-		"tag:web-ingress": [],
+	"tagOwners": {// can use exit nodes
+		"tag:can-exit": [],
+
+		// can funnel (serve to the public internet)
+		"tag:can-funnel": [],
+
+		// can be an exit node
+		"tag:exit-node": [],
+
+		// can be a subnet router — autoapproves all requested subnet routes
+		"tag:subnet-router": [],
+
+		// can receive requests from web-ingress
 		"tag:web-backend": [],
-		"tag:tsidp":       [],
-		"tag:authentik":   [],
+
+		// opens port 443 to the tailnet
+		"tag:web-ingress": [],
+
+		// opens port 53 to the tailnet
+		"tag:dns-server": [],
+
+		// autoapproves subnet routes to DN42
+		"tag:dn42-router": [],
+
+		// tsidp node
+		"tag:tsidp": [],
+
+		"tag:docker":           ["group:komodo-admin"],
+		"tag:terraform":        [],
+		"tag:github-runner":    [],
+		"tag:home":             [],
+		"tag:hypervisor":       [],
+		"tag:komodo-core":      ["group:komodo-admin"],
+		"tag:komodo-periphery": ["group:komodo-admin"],
+		"tag:op-connect":       [],
+		"tag:prod":             [],
+		"tag:router":           [],
+		"tag:traefik":          [],
+		"tag:traefik-redis":    [],
+		"tag:traefik-kop":      [],
+		"tag:tsdproxy":         [],
+
+		// tailscale ssh recorder
+		"tag:ssh-recorder": [],
+
+		"tag:taildrive-share":   [],
+		"tag:taildrive-access":  [],
+		"tag:tailgator-webhook": [],
 	},
 
 	// Test access rules every time they're saved.
