@@ -1,5 +1,12 @@
 name: Detect drift
 
+# These permissions are required for Tailscale workload identity federation.
+# `id-token: write` lets GitHub mint an OIDC JWT at runtime; no long-lived
+# secrets are stored in the repository.
+permissions:
+  contents: read
+  id-token: write
+
 on:
   workflow_dispatch:
   schedule:
@@ -11,23 +18,59 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version: 1.22.4
           cache: false
 
+      # ------------------------------------------------------------------
+      # Authenticate to Tailscale via OIDC workload identity federation.
+      #
+      # Prerequisites (one-time setup in the Tailscale admin console):
+      #   1. Create a federated identity (Trust credentials → OpenID Connect)
+      #      with GitHub as the issuer.
+      #   2. Subject: "repo:perchnet/tailscale-acl:*" (or narrower).
+#   3. Scopes: all:read  (or at minimum policy_file:read plus its
+#      required dependencies devices:core:read and
+#      devices:posture_attributes:read).
+#      If sharing this credential with the GitOps workflow (tailscale.yml),
+#      use policy_file (or all) instead, since the apply action needs write
+#      access to the policy file.
+      #   4. Copy the generated Client ID and Audience.
+      #
+      # In GitHub, create repository *variables* (not secrets — the client
+      # ID and audience are not sensitive):
+      #   - TS_OIDC_CLIENT_ID  → the federated identity Client ID
+      #   - TS_OIDC_AUDIENCE   → the audience (e.g. api.tailscale.com/<id>)
+      #   - TS_TAILNET         → your tailnet name
+      # ------------------------------------------------------------------
+      - name: Authenticate to Tailscale via OIDC
+        run: |
+          # Step 1 – request an OIDC token from GitHub's identity provider.
+          id_token="$(
+            curl -sSf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${{ vars.TS_OIDC_AUDIENCE }}" \
+              | jq -r .value
+          )"
+
+          # Step 2 – exchange the OIDC JWT for a short-lived Tailscale API token.
+          api_token="$(
+            curl -sSf -X POST https://api.tailscale.com/api/v2/oauth/token-exchange \
+              -H "Content-Type: application/x-www-form-urlencoded" \
+              -d "client_id=${{ vars.TS_OIDC_CLIENT_ID }}" \
+              -d "jwt=${id_token}" \
+              | jq -r .access_token
+          )"
+
+          # Expose the token to subsequent steps.
+          echo "TAILSCALE_API_KEY=${api_token}" >> "$GITHUB_ENV"
+
       - name: Detect ACL drift
         run: ./detect-drift.sh || true
         env:
-          OAUTH_CLIENT_ID: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          OAUTH_CLIENT_SECRET: ${{ secrets.TS_OAUTH_SECRET }}
-          TAILSCALE_TAILNET: ${{ secrets.TS_TAILNET }}
+          TAILSCALE_TAILNET: ${{ vars.TS_TAILNET }}
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
-        with:
-          title: Reconcile ACL drift
-          body: Automated drift-reconciliation changes
-          labels: drift
