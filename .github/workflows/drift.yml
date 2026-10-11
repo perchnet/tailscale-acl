@@ -64,6 +64,9 @@ jobs:
               | jq -r .access_token
           )"
 
+          # Mask the token in the logs to prevent accidental exposure.
+          echo "::add-mask::${api_token}"
+
           # Expose the token to subsequent steps.
           echo "TAILSCALE_API_KEY=${api_token}" >> "$GITHUB_ENV"
 
