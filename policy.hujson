@@ -1,5 +1,4 @@
 {
-
 	// Define grants that govern access for users, groups, autogroups, tags,
 	// Tailscale IP addresses, and subnet ranges.
 	"grants": [
@@ -162,14 +161,13 @@
 		// tailscale ssh recorder
 		"tag:ssh-recorder": [],
 
-		"tag:taildrive-share":   [],
-		"tag:taildrive-access":  [],
-		"tag:authentik":       [],
-		"tag:border0-managed": [],
-		"tag:docker-host":     [],
-		"tag:ci-host":         [],
+		"tag:taildrive-share":  [],
+		"tag:taildrive-access": [],
+		"tag:authentik":        [],
+		"tag:border0-managed":  [],
+		"tag:docker-host":      [],
+		"tag:ci-host":          [],
 	},
-
 
 	"externalTailnets": {
 		"iei": {
