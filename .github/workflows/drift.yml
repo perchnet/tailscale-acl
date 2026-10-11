@@ -4,7 +4,7 @@ name: Detect drift
 # `id-token: write` lets GitHub mint an OIDC JWT at runtime; no long-lived
 # secrets are stored in the repository.
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 on:
