@@ -1,10 +1,15 @@
 name: Sync Tailscale ACLs
 
+# These permissions are required for Tailscale workload identity federation.
+# `id-token: write` lets GitHub mint an OIDC JWT at runtime; no long-lived
+# secrets are stored in the repository.
+permissions:
+  contents: write
+  id-token: write
+
 on:
   push:
     branches: [ "main" ]
-    paths:
-      - "**.hujson"
   pull_request:
   merge_group:
   workflow_dispatch:
@@ -15,17 +20,17 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         if: github.event_name != 'pull_request'
       - name: Checkout (pull request)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         if: github.event_name == 'pull_request'
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           ref: ${{ github.event.pull_request.head.ref }}
       - name: Format files
         run: ./reformat.sh
-      - uses: EndBug/add-and-commit@v9 # You can change this to use a specific version.
+      - uses: EndBug/add-and-commit@v11 # You can change this to use a specific version.
         with:
           message: 'chore: automatic reformat'
           default_author: 'github_actions'
@@ -35,9 +40,9 @@ jobs:
         id: deploy-acl
         uses: tailscale/gitops-acl-action@v1
         with:
-          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
-          tailnet: ${{ secrets.TS_TAILNET }}
+          oauth-client-id: ${{ vars.TS_OIDC_CLIENT_ID }}
+          audience: ${{ vars.TS_OIDC_AUDIENCE }}
+          tailnet: ${{ vars.TS_TAILNET }}
           action: apply
 
       - name: Test ACL
@@ -45,7 +50,7 @@ jobs:
         id: test-acl
         uses: tailscale/gitops-acl-action@v1
         with:
-          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
-          tailnet: ${{ secrets.TS_TAILNET }}
+          oauth-client-id: ${{ vars.TS_OIDC_CLIENT_ID }}
+          audience: ${{ vars.TS_OIDC_AUDIENCE }}
+          tailnet: ${{ vars.TS_TAILNET }}
           action: test

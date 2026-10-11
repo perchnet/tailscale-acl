@@ -1,20 +1,39 @@
-// Example/default ACLs for unrestricted connections.
 {
-	// Declare static groups of users. Use autogroups for all users or users with a specific role.
-	// "groups": {
-	//   "group:example": ["alice@example.com", "bob@example.com"],
-	// },
-
-	// Define the tags which can be applied to devices and by which users.
-	// "tagOwners": {
-	//   "tag:example": ["autogroup:admin"],
-	// },
-
 	// Define grants that govern access for users, groups, autogroups, tags,
 	// Tailscale IP addresses, and subnet ranges.
 	"grants": [
-		// Allow all connections.
-		// Comment this section out if you want to define specific restrictions.
+		{
+			"src": ["*"],
+			"dst": ["autogroup:internet"],
+			"ip":  ["*"],
+		},
+		{
+			"src": ["*"],
+			"dst": ["tag:authentik", "tag:tsidp", "tag:web-ingress"],
+			"ip":  ["*"],
+		},
+		{
+			"src": ["tag:web-ingress"],
+			"dst": ["tag:web-backend"],
+			"ip":  ["*"],
+		},
+		{
+			"src": ["autogroup:admin"],
+			"dst": ["*"],
+			"ip":  ["*"],
+		},
+		{
+			"src": [
+				"b@ibeep.com",
+				"b2@ibeep.com",
+				"bri1p@passkey",
+				"b-@github",
+			],
+
+			"dst": ["tag:bluebubbles"],
+			"ip":  ["*"],
+		},
+		// override-all
 		{
 			"src": ["*"],
 			"dst": ["*"],
@@ -64,12 +83,41 @@
 
 	"nodeAttrs": [
 		{
-			"target": ["*"],
+			"target": ["sage@ibeep.com", "b@ibeep.com", "casey@ibeep.com"],
+			"attr":   ["mullvad"],
+		},
+		{
+			// Funnel policy, which lets tailnet members control Funnel
+			// for their own devices.
+			// Learn more at https://tailscale.com/kb/1223/tailscale-funnel/
+			"target": ["autogroup:member"],
+
+			"attr": ["funnel"],
+		},
+		{
+			"target": ["100.66.23.106"],
+			"attr":   ["mullvad"],
+		},
+		{
+			"target": ["100.96.195.67"],
+			"attr":   ["mullvad"],
+		},
+		{
+			"target": ["100.77.248.51"],
 			"attr":   ["mullvad"],
 		},
 	],
 
-	"tagOwners": { // can use exit nodes
+	"autoApprovers": {"services": {"tag:border0-managed": ["tag:border0-managed"]}},
+
+	"tagOwners": {
+		// bluebubbles server
+		"tag:bluebubbles": [],
+
+		// home assistant server
+		"tag:home-assistant": [],
+
+		// can use exit nodes
 		"tag:can-exit": [],
 
 		// can funnel (serve to the public internet)
@@ -96,27 +144,88 @@
 		// tsidp node
 		"tag:tsidp": [],
 
-		"tag:docker":           ["group:komodo-admin"],
+		// arr stack
+		"tag:arr-stack": [],
+
+		"tag:docker":           [],
 		"tag:terraform":        [],
 		"tag:github-runner":    [],
 		"tag:home":             [],
 		"tag:hypervisor":       [],
-		"tag:komodo-core":      ["group:komodo-admin"],
-		"tag:komodo-periphery": ["group:komodo-admin"],
+		"tag:komodo-core":      [],
+		"tag:komodo-periphery": [],
 		"tag:op-connect":       [],
 		"tag:prod":             [],
 		"tag:router":           [],
-		"tag:traefik":          [],
-		"tag:traefik-redis":    [],
-		"tag:traefik-kop":      [],
-		"tag:tsdproxy":         [],
 
 		// tailscale ssh recorder
 		"tag:ssh-recorder": [],
 
-		"tag:taildrive-share":   [],
-		"tag:taildrive-access":  [],
-		"tag:tailgator-webhook": [],
+		"tag:taildrive-share":  [],
+		"tag:taildrive-access": [],
+		"tag:authentik":        [],
+		"tag:border0-managed":  [],
+		"tag:docker-host":      [],
+		"tag:ci-host":          [],
+	},
+
+	"externalTailnets": {
+		"iei": {
+			"externalID":               "THAU34AqeD11CNTRL",
+			"allowIncomingConnections": true,
+			"allowExternalReferencesTo": [
+				"group:admin",
+				"tag:tsidp",
+				"tag:arr-stack",
+				"tag:docker",
+				"tag:hypervisor",
+				"tag:komodo-core",
+				"tag:komodo-periphery",
+				"tag:router",
+			],
+		},
+		"perchnet-legacy": {
+			"externalID":               "T3g4g1pr3o61CNTRL",
+			"allowIncomingConnections": true,
+			"allowExternalReferencesTo": [
+				"group:admin",
+				"group:arr-admin",
+				"group:arr-user",
+				"group:komodo-admin",
+				"tag:tsidp",
+				"tag:arr-stack",
+				"tag:docker",
+				"tag:hypervisor",
+				"tag:komodo-core",
+				"tag:komodo-periphery",
+				"tag:router",
+				"tag:bluebubbles",
+				"tag:home-assistant",
+			],
+		},
+	},
+
+	"groups": {
+		"group:bri": [
+			"b@ibeep.com",
+			"b2@ibeep.com",
+			"bri1p@passkey",
+			"b-@github",
+		],
+		"group:admin":        ["b-@github", "bri1p@passkey", "b@ibeep.com"],
+		"group:can-funnel":   ["b-@github", "bri1p@passkey", "b@ibeep.com"],
+		"group:can-exit":     ["b-@github", "bri1p@passkey", "b@ibeep.com"],
+		"group:komodo-admin": ["b-@github", "bri1p@passkey", "b@ibeep.com"],
+		"group:arr-admin":    ["b-@github", "bri1p@passkey", "b@ibeep.com"],
+		"group:arr-user":     ["b-@github", "bri1p@passkey", "b@ibeep.com"],
+
+		// Can access DN42
+		"group:dn42-user": [
+			"b-@github",
+			"bri1p@passkey",
+			"b@ibeep.com",
+			"b2@ibeep.com",
+		],
 	},
 
 	// Test access rules every time they're saved.
