@@ -17,11 +17,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-
       - uses: actions/setup-go@v7
-        with:
-          go-version: 1.22.4
-          cache: true
 
       # ------------------------------------------------------------------
       # Authenticate to Tailscale via OIDC workload identity federation.
