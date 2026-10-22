@@ -9,7 +9,10 @@ permissions:
 
 on:
   push:
-    branches: [ "main" ]
+    paths-ignore:
+      - .github/workflows/drift.yml # don't trigger this workflow when we update the drift-reconciliation one.
+      - **/*.md # ignore any markdown files
+    
   pull_request:
   merge_group:
   workflow_dispatch:
@@ -30,7 +33,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
       - name: Format files
         run: ./reformat.sh
-      - uses: EndBug/add-and-commit@v11 # You can change this to use a specific version.
+      - uses: EndBug/add-and-commit@v11
         with:
           message: 'chore: automatic reformat'
           default_author: 'github_actions'
