@@ -6,6 +6,10 @@ permissions:
   pull-requests: write # necessary to open the PR  
 
 on:
+  push:
+    paths:
+      - '.github/workflows/drift.yml' # re-run if we update this file
+      - 'detect-drift.sh' # or this one
   workflow_dispatch:
   schedule:
     - cron: "0 * * * *"
