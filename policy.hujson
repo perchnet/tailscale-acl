@@ -106,6 +106,10 @@
 			"target": ["100.77.248.51"],
 			"attr":   ["mullvad"],
 		},
+		{
+			"target": ["tag:home-assistant"],
+			"attr":   ["funnel", "mullvad"],
+		},
 	],
 
 	"autoApprovers": {"services": {"tag:border0-managed": ["tag:border0-managed"]}},
@@ -173,6 +177,7 @@
 		"iei": {
 			"externalID":               "THAU34AqeD11CNTRL",
 			"allowIncomingConnections": true,
+
 			"allowExternalReferencesTo": [
 				"group:admin",
 				"tag:tsidp",
@@ -184,9 +189,11 @@
 				"tag:router",
 			],
 		},
+
 		"perchnet-legacy": {
 			"externalID":               "T3g4g1pr3o61CNTRL",
 			"allowIncomingConnections": true,
+
 			"allowExternalReferencesTo": [
 				"group:admin",
 				"group:arr-admin",
@@ -212,6 +219,7 @@
 			"bri1p@passkey",
 			"b-@github",
 		],
+
 		"group:admin":        ["b-@github", "bri1p@passkey", "b@ibeep.com"],
 		"group:can-funnel":   ["b-@github", "bri1p@passkey", "b@ibeep.com"],
 		"group:can-exit":     ["b-@github", "bri1p@passkey", "b@ibeep.com"],
