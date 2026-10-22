@@ -10,8 +10,8 @@ permissions:
 on:
   push:
     paths-ignore:
-      - .github/workflows/drift.yml # don't trigger this workflow when we update the drift-reconciliation one.
-      - **/*.md # ignore any markdown files
+      - '.github/workflows/drift.yml' # don't trigger this workflow when we update the drift-reconciliation one.
+      - '**/*.md' # ignore any markdown files
     
   pull_request:
   merge_group:
