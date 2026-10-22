@@ -1,11 +1,9 @@
 name: Detect drift
 
-# These permissions are required for Tailscale workload identity federation.
-# `id-token: write` lets GitHub mint an OIDC JWT at runtime; no long-lived
-# secrets are stored in the repository.
 permissions:
-  contents: write
-  id-token: write
+  id-token: write # necessary to mint an OIDC token for Tailscale trust federation
+  contents: write # necessary to push branches
+  pull-requests: write # necessary to open the PR  
 
 on:
   workflow_dispatch:
@@ -23,7 +21,7 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version: 1.22.4
-          cache: false
+          cache: true
 
       # ------------------------------------------------------------------
       # Authenticate to Tailscale via OIDC workload identity federation.
@@ -31,13 +29,13 @@ jobs:
       # Prerequisites (one-time setup in the Tailscale admin console):
       #   1. Create a federated identity (Trust credentials → OpenID Connect)
       #      with GitHub as the issuer.
-      #   2. Subject: "repo:perchnet/tailscale-acl:*" (or narrower).
-#   3. Scopes: all:read  (or at minimum policy_file:read plus its
-#      required dependencies devices:core:read and
-#      devices:posture_attributes:read).
-#      If sharing this credential with the GitOps workflow (tailscale.yml),
-#      use policy_file (or all) instead, since the apply action needs write
-#      access to the policy file.
+      #   2. Subject: "repo:${ORG}/tailscale-acl:*" (or narrower).
+      #   3. Scopes: all:read  (or at minimum policy_file:read plus its
+      #      required dependencies devices:core:read and
+      #      devices:posture_attributes:read).
+      #      If sharing this credential with the GitOps workflow (tailscale.yml),
+      #      use policy_file (or all) instead, since the apply action needs write
+      #      access to the policy file.
       #   4. Copy the generated Client ID and Audience.
       #
       # In GitHub, create repository *variables* (not secrets — the client
@@ -71,7 +69,7 @@ jobs:
           echo "TAILSCALE_API_KEY=${api_token}" >> "$GITHUB_ENV"
 
       - name: Detect ACL drift
-        run: ./detect-drift.sh || true
+        run: ./detect-drift.sh || true # force true exit, because otherwise the script will fail on no changes
         env:
           TAILSCALE_TAILNET: ${{ vars.TS_TAILNET }}
 
