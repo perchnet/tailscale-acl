@@ -43,7 +43,7 @@ jobs:
       # ------------------------------------------------------------------
       - name: Detect ACL drift
         id: detect_drift
-        uses: perchnet/tailscale-detect-acl-drift@d328c87
+        uses: perchnet/tailscale-detect-acl-drift@main
         with:
           ts-oidc-client-id: ${{ vars.TS_OIDC_CLIENT_ID }}
           ts-oidc-audience: ${{ vars.TS_OIDC_AUDIENCE }}
