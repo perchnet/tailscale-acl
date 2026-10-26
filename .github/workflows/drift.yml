@@ -22,7 +22,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-
       # ------------------------------------------------------------------
       # Authenticate to Tailscale via OIDC workload identity federation.
       #
@@ -33,8 +32,6 @@ jobs:
       #   3. Scopes: all:read  (or at minimum policy_file:read plus its
       #      required dependencies devices:core:read and
       #      devices:posture_attributes:read).
-      #      If sharing this credential with the GitOps workflow (tailscale.yml),
-      #      use policy_file (or all) instead, since the apply action needs write
       #      access to the policy file.
       #   4. Copy the generated Client ID and Audience.
       #
@@ -44,34 +41,10 @@ jobs:
       #   - TS_OIDC_AUDIENCE   → the audience (e.g. api.tailscale.com/<id>)
       #   - TS_TAILNET         → your tailnet name
       # ------------------------------------------------------------------
-      - name: Authenticate to Tailscale via OIDC
-        run: |
-          # Step 1 – request an OIDC token from GitHub's identity provider.
-          id_token="$(
-            curl -sSf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${{ vars.TS_OIDC_AUDIENCE }}" \
-              | jq -r .value
-          )"
-
-          # Step 2 – exchange the OIDC JWT for a short-lived Tailscale API token.
-          api_token="$(
-            curl -sSf -X POST https://api.tailscale.com/api/v2/oauth/token-exchange \
-              -H "Content-Type: application/x-www-form-urlencoded" \
-              -d "client_id=${{ vars.TS_OIDC_CLIENT_ID }}" \
-              -d "jwt=${id_token}" \
-              | jq -r .access_token
-          )"
-
-          # Mask the token in the logs to prevent accidental exposure.
-          echo "::add-mask::${api_token}"
-
-          # Expose the token to subsequent steps.
-          echo "TAILSCALE_API_KEY=${api_token}" >> "$GITHUB_ENV"
-
       - name: Detect ACL drift
-        run: ./detect-drift.sh || true # force true exit, because otherwise the script will fail on no changes
-        env:
-          TAILSCALE_TAILNET: ${{ vars.TS_TAILNET }}
-
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v8
+        id: detect_drift
+        uses: perchnet/tailscale-detect-acl-drift@d328c87
+        with:
+          ts-oidc-client-id: ${{ vars.TS_OIDC_CLIENT_ID }}
+          ts-oidc-audience: ${{ vars.TS_OIDC_AUDIENCE }}
+          ts-tailnet: ${{ vars.TS_TAILNET }}
