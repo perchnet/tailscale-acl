@@ -9,6 +9,8 @@ permissions:
 
 on:
   push:
+    branches:
+      - main
     paths-ignore:
       - '.github/workflows/drift.yml' # don't trigger this workflow when we update the drift-reconciliation one.
       - '**/*.md' # ignore any markdown files
