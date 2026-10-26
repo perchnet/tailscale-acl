@@ -44,34 +44,60 @@ jobs:
       #   - TS_OIDC_AUDIENCE   → the audience (e.g. api.tailscale.com/<id>)
       #   - TS_TAILNET         → your tailnet name
       # ------------------------------------------------------------------
-      - name: Authenticate to Tailscale via OIDC
-        run: |
-          # Step 1 – request an OIDC token from GitHub's identity provider.
-          id_token="$(
-            curl -sSf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${{ vars.TS_OIDC_AUDIENCE }}" \
-              | jq -r .value
-          )"
 
-          # Step 2 – exchange the OIDC JWT for a short-lived Tailscale API token.
-          api_token="$(
-            curl -sSf -X POST https://api.tailscale.com/api/v2/oauth/token-exchange \
-              -H "Content-Type: application/x-www-form-urlencoded" \
-              -d "client_id=${{ vars.TS_OIDC_CLIENT_ID }}" \
-              -d "jwt=${id_token}" \
-              | jq -r .access_token
-          )"
-
-          # Mask the token in the logs to prevent accidental exposure.
-          echo "::add-mask::${api_token}"
-
-          # Expose the token to subsequent steps.
-          echo "TAILSCALE_API_KEY=${api_token}" >> "$GITHUB_ENV"
-
-      - name: Detect ACL drift
-        run: ./detect-drift.sh || true # force true exit, because otherwise the script will fail on no changes
+      - id: id_token
+        name: Request an OIDC token from GitHub
         env:
-          TAILSCALE_TAILNET: ${{ vars.TS_TAILNET }}
+          TS_OIDC_AUDIENCE: ${{ vars.TS_OIDC_AUDIENCE }}
+        run: |
+          id_token="$(
+            curl --silent --show-error --fail \
+              --variable '%ACTIONS_ID_TOKEN_REQUEST_TOKEN' \
+              --variable '%ACTIONS_ID_TOKEN_REQUEST_URL' \
+              --variable '%TS_OIDC_AUDIENCE' \
+              --expand-header "Authorization: bearer {{ACTIONS_ID_TOKEN_REQUEST_TOKEN}}" \
+              --expand-url "{{ACTIONS_ID_TOKEN_REQUEST_URL}}&audience={{TS_OIDC_AUDIENCE}}" \
+            | jq --raw-output --exit-status '.value'
+          )"
+          echo "::add-mask::${id_token}" # Mask the token in the logs to prevent accidental exposure.
+          echo "id_token=${id_token}" >> "$GITHUB_OUTPUT" # Expose the token to subsequent steps.
+
+      - name: Authenticate to Tailscale via OIDC
+        id: authenticate
+        env:
+          TS_OIDC_CLIENT_ID: ${{ vars.TS_OIDC_CLIENT_ID }}
+          JWT: ${{ steps.id_token.outputs.id_token }}
+          TS_TOKEN_EXCHANGE_URL: https://api.tailscale.com/api/v2/oauth/token-exchange
+        run: |
+          api_token="$(
+            curl --silent --show-error --fail \
+              --header 'Content-Type: application/x-www-form-urlencoded' \
+              --variable '%TS_OIDC_CLIENT_ID' \
+              --variable '%JWT' \
+              --variable '%TS_TOKEN_EXCHANGE_URL' \
+              --expand-data 'client_id={{TS_OIDC_CLIENT_ID}}' \
+              --expand-data 'jwt={{JWT}}' \
+              --expand-url '{{TS_TOKEN_EXCHANGE_URL}}' \
+              | jq --raw-output --exit-status '.access_token'
+          )"
+          echo "::add-mask::${api_token}" # Mask the token in the logs to prevent accidental exposure.
+          echo "tailscale_api_token=${api_token}" >> "$GITHUB_OUTPUT" # Expose the token to subsequent steps.
+
+      - name: Get current ACL policy from Tailscale
+        id: get_policy
+        env:
+          TS_TOKEN: '${{ steps.authenticate.outputs.tailscale_api_token }}'
+          REQUEST_URL: 'https://api.tailscale.com/api/v2/tailnet/${{ vars.TS_TAILNET }}/acl'
+          POLICY_FILE: 'policy.hujson'
+        run: |
+          > ${{ env.POLICY_FILE }} \
+            curl --silent --show-error --fail \
+            --variable '%TS_TOKEN' \
+            --variable '%REQUEST_URL' \
+            --expand-header "Authorization: Bearer {{TS_TOKEN}}" \
+            --expand-url '{{REQUEST_URL}}' \
+          | perl -pe 'chomp if eof' # remove the spurious extra newline
 
       - name: Create Pull Request
+        id: pr
         uses: peter-evans/create-pull-request@v8
