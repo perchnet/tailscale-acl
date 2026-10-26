@@ -1,15 +1,35 @@
 name: Detect drift
 
+      # ------------------------------------------------------------------
+      # Authenticate to Tailscale via OIDC workload identity federation.
+      #
+      # Prerequisites (one-time setup in the Tailscale admin console):
+      #   1. Create a federated identity (Trust credentials → OpenID Connect)
+      #      with GitHub as the issuer.
+      #   2. Subject: "repo:${ORG}/tailscale-acl:*" (or narrower).
+      #   3. Scopes: all:read  (or at minimum policy_file:read plus its
+      #      required dependencies devices:core:read and
+      #      devices:posture_attributes:read).
+      #   4. Copy the generated Client ID and Audience.
+      #
+      # In GitHub, create repository *variables* (not secrets — the client
+      # ID and audience are not sensitive):
+      #   - TS_OIDC_CLIENT_ID  → the federated identity Client ID
+      #   - TS_OIDC_AUDIENCE   → the audience (e.g. api.tailscale.com/<id>)
+      #   - TS_TAILNET         → your tailnet name
+      # ------------------------------------------------------------------
 permissions:
   id-token: write # necessary to mint an OIDC token for Tailscale trust federation
   contents: write # necessary to push branches
-  pull-requests: write # necessary to open the PR  
+  pull-requests: write # necessary to open the PR
 
+env:
+  POLICY_FILE: policy.hujson
+  BRANCH_NAME: drift-reconciliation
 on:
   push:
     paths:
       - '.github/workflows/drift.yml' # re-run if we update this file
-      - 'detect-drift.sh' # or this one
   workflow_dispatch:
   schedule:
     - cron: "0 * * * *"
@@ -22,25 +42,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      # ------------------------------------------------------------------
-      # Authenticate to Tailscale via OIDC workload identity federation.
-      #
-      # Prerequisites (one-time setup in the Tailscale admin console):
-      #   1. Create a federated identity (Trust credentials → OpenID Connect)
-      #      with GitHub as the issuer.
-      #   2. Subject: "repo:${ORG}/tailscale-acl:*" (or narrower).
-      #   3. Scopes: all:read  (or at minimum policy_file:read plus its
-      #      required dependencies devices:core:read and
-      #      devices:posture_attributes:read).
-      #      access to the policy file.
-      #   4. Copy the generated Client ID and Audience.
-      #
-      # In GitHub, create repository *variables* (not secrets — the client
-      # ID and audience are not sensitive):
-      #   - TS_OIDC_CLIENT_ID  → the federated identity Client ID
-      #   - TS_OIDC_AUDIENCE   → the audience (e.g. api.tailscale.com/<id>)
-      #   - TS_TAILNET         → your tailnet name
-      # ------------------------------------------------------------------
       - name: Detect ACL drift
         id: detect_drift
         uses: perchnet/tailscale-detect-acl-drift@main
@@ -48,3 +49,4 @@ jobs:
           ts-oidc-client-id: ${{ vars.TS_OIDC_CLIENT_ID }}
           ts-oidc-audience: ${{ vars.TS_OIDC_AUDIENCE }}
           ts-tailnet: ${{ vars.TS_TAILNET }}
+          
