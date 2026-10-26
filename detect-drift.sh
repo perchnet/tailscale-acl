@@ -1,13 +1,9 @@
 #!/usr/bin/env bash
-#shellcheck disable=SC2312
 set -euo pipefail
 TAILSCALE_API_KEY="${TAILSCALE_API_KEY:-}"
 OAUTH_CLIENT_ID="${OAUTH_CLIENT_ID:-}"
 OAUTH_CLIENT_SECRET="${OAUTH_CLIENT_SECRET:-}"
 TAILSCALE_TAILNET="${TAILSCALE_TAILNET:?Please supply a TAILSCALE_TAILNET}"
-tscli() {
-	go run github.com/jaxxstorm/tscli/cmd/tscli@latest "${@}"
-}
 get_bearer() {
 	if [[ -n "${TAILSCALE_API_KEY}" ]]; then
 		return 0
@@ -17,8 +13,8 @@ get_bearer() {
 			endpoint="https://api.tailscale.com/api/v2/oauth/token"
 			response="$(
 				curl --silent \
-					-d "client_id=${OAUTH_CLIENT_ID}" \
-					-d "client_secret=${OAUTH_CLIENT_SECRET}" \
+					--data "client_id=${OAUTH_CLIENT_ID}" \
+					--data "client_secret=${OAUTH_CLIENT_SECRET}" \
 					"${endpoint}"
 				)"
 			TAILSCALE_API_KEY="$(jq -r .access_token <<< "${response}")"
@@ -31,7 +27,8 @@ get_bearer() {
 }
 
 get_policy() {
-	tscli get policy
+	curl "https://api.tailscale.com/api/v2/tailnet/${TAILSCALE_TAILNET}/acl" \
+	    --header "Authorization: Bearer ${TAILSCALE_API_KEY}"
 }
 get_bearer
 get_policy > policy.hujson
