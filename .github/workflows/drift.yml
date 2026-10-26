@@ -127,50 +127,32 @@ jobs:
         run: |
           case "${DRIFT_DETECTED}" in
             false)
-            >>${GITHUB_STEP_SUMMARY} tee << 'EOM'
-          [!NOTE]
-          No ACL drift detected.
-          EOM
+              echo '## ✅ No ACL drift detected.' | tee ${GITHUB_STEP_SUMMARY}
               ;;
             true)
-            >>${GITHUB_STEP_SUMMARY} tee << 'EOM'
-          [!WARNING]
-          ACL drift detected.
-          EOM
+              echo '## ⚠️ ACL drift detected.' | tee -a '${GITHUB_STEP_SUMMARY}'
               ;;
             *)
-            >>${GITHUB_STEP_SUMMARY} tee << EOM
-          Error: Unexpected value for DRIFT_DETECTED: ${DRIFT_DETECTED}"
+              echo "## Error: Unexpected value for DRIFT_DETECTED: ${DRIFT_DETECTED}" | tee -a '${GITHUB_STEP_SUMMARY}'
               exit 1
               ;;
           esac
 
           case "${PULL_REQUEST_OPERATION}" in
             created)
-            >>${GITHUB_STEP_SUMMARY} cat << 'EOM'
-          A pull request has been created to reconcile the ACL drift. Please review and merge it.
-          EOM
+              echo '✨ A pull request has been created to reconcile the ACL drift. Please review and merge it.' | tee -a '${GITHUB_STEP_SUMMARY}'
               ;;
             updated)
-            >>${GITHUB_STEP_SUMMARY} cat << 'EOM'
-          [!IMPORTANT]
-          An existing drift-reconciliation pull request has been updated.
-          EOM
+              echo '🔄 An existing drift-reconciliation pull request has been updated.' | tee -a '${GITHUB_STEP_SUMMARY}'
               ;;
             closed)
-            >>${GITHUB_STEP_SUMMARY} cat << 'EOM'
-          [!NOTE]
-          The pull request has been closed. If the ACL drift was reconciled, no further action is needed.
-          EOM
+              echo '❌ The pull request has been closed. If the ACL drift was reconciled, no further action is needed.' | tee -a '${GITHUB_STEP_SUMMARY}'
               ;;
             none)
-            >>${GITHUB_STEP_SUMMARY} cat << 'EOM'
-          EOM
+              :
               ;;
             *)
-            >>${GITHUB_STEP_SUMMARY} cat << EOM
-          Error: Unexpected value for PULL_REQUEST_OPERATION: ${PULL_REQUEST_OPERATION}"
-          EOM
+              echo "## Error: Unexpected value for PULL_REQUEST_OPERATION: ${PULL_REQUEST_OPERATION}" | tee -a '${GITHUB_STEP_SUMMARY}'
               exit 1
               ;;
           esac
