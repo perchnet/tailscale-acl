@@ -112,7 +112,17 @@
 		},
 	],
 
-	"autoApprovers": {"services": {"tag:border0-managed": ["tag:border0-managed"]}},
+	"autoApprovers": {
+		"services": {
+			"tag:border0-managed": ["tag:border0-managed"],
+			"svc:musicassistant":  ["tag:home-assistant"],
+		},
+
+		"routes": {
+			"192.168.1.4/32":  ["tag:hypervisor"],
+			"192.168.1.64/32": ["tag:home-assistant"],
+		},
+	},
 
 	"tagOwners": {
 		// bluebubbles server
