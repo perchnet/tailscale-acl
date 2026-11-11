@@ -47,7 +47,6 @@
 			"dst": ["tag:komodo-core", "tag:komodo-periphery"],
 			"ip":  ["8120", "9120", "443"],
 		},
-
 		// override-all
 		{
 			"src": ["*"],
@@ -127,7 +126,10 @@
 		},
 	],
 
-	"autoApprovers": {"services": {"tag:border0-managed": ["tag:border0-managed"]}},
+	"autoApprovers": {
+		"services": {"tag:border0-managed": ["tag:border0-managed"]},
+		"routes":   {"192.168.1.0/24": ["tag:subnet-router", "tag:home-assistant"]},
+	},
 
 	"tagOwners": {
 		// bluebubbles server
